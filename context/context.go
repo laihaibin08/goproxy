@@ -1,4 +1,4 @@
-package httpproxy
+package context
 
 import (
 	"fmt"
@@ -6,6 +6,14 @@ import (
 )
 
 type Context map[string]interface{}
+
+func (f *Context) Get(name string) (interface{}, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return nil, fmt.Errorf("Context(%#v) cannot Get(%#v)", f, name)
+	}
+	return v, nil
+}
 
 func (f *Context) GetString(name string) (string, error) {
 	v, ok := (*f)[name]
@@ -49,6 +57,18 @@ func (f *Context) GetHeader(name string) (*http.Header, error) {
 		return nil, fmt.Errorf("Context(%#v) cannot GetHeader(%#v)", f, name)
 	}
 	s, ok := v.(*http.Header)
+	if !ok {
+		return nil, fmt.Errorf("Context(%#v) cannot convert %#v to *http.Header", f, v)
+	}
+	return s, nil
+}
+
+func (f *Context) GetResponseWriter(name string) (http.ResponseWriter, error) {
+	v, ok := (*f)[name]
+	if !ok {
+		return nil, fmt.Errorf("Context(%#v) cannot GetHeader(%#v)", f, name)
+	}
+	s, ok := v.(http.ResponseWriter)
 	if !ok {
 		return nil, fmt.Errorf("Context(%#v) cannot convert %#v to *http.Header", f, v)
 	}

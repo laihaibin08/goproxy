@@ -2,6 +2,9 @@ package httpproxy
 
 import (
 	"github.com/golang/glog"
+	"github.com/phuslu/goproxy/context"
+	"github.com/phuslu/goproxy/httpproxy/plugins"
+	"io"
 	"net"
 	"net/http"
 )
@@ -15,13 +18,11 @@ type Handler struct {
 }
 
 type RequestFilter interface {
-	HandleRequest(*Context, http.ResponseWriter, *http.Request) (*http.Response, error)
-	Filter(req *http.Request) (ctx *Context, err error)
+	Filter(ctx *context.Context, req *http.Request) (*context.Context, plugins.Plugin, error)
 }
 
 type ResponseFilter interface {
-	HandleResponse(*Context, http.ResponseWriter, *http.Response, error) error
-	Filter(res *http.Response) (ctx *Context, err error)
+	Filter(ctx *context.Context, res *http.Response) (*context.Context, *http.Response, error)
 }
 
 func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -38,35 +39,38 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			req.URL.Host = req.Host
 		}
 	}
-	for i, reqfilter := range h.RequestFilters {
-		ctx, err := reqfilter.Filter(req)
+
+	ctx := &context.Context{}
+	for _, f1 := range h.RequestFilters {
+		ctx, plugin, err := f1.Filter(ctx, req)
 		if err != nil {
 			glog.Infof("ServeHTTP RequestFilter error: %v", err)
+			return
 		}
-		if ctx != nil || i == len(h.RequestFilters)-1 {
-			res, err := reqfilter.HandleRequest(ctx, rw, req)
+		if plugin != nil {
+			resp, err := plugin.Fetch(ctx, req)
 			if err != nil {
 				glog.Infof("ServeHTTP HandleRequest error: %v", err)
-			}
-			if res == nil {
 				return
 			}
-			res.Request = req
-			for j, resfilter := range h.ResponseFilters {
-				if resfilter == nil {
-					break
-				}
-				ctx, err := resfilter.Filter(res)
+			if resp == nil {
+				return
+			}
+			for _, f2 := range h.ResponseFilters {
+				ctx, resp, err = f2.Filter(ctx, resp)
 				if err != nil {
 					glog.Infof("ServeHTTP ResponseFilter error: %v", err)
+					return
 				}
-				if ctx != nil || j == len(h.ResponseFilters)-1 {
-					err := resfilter.HandleResponse(ctx, rw, res, err)
-					if err != nil {
-						glog.Infof("ServeHTTP HandleResponse error: %v", err)
+			}
+			if resp != nil {
+				for key, values := range resp.Header {
+					for _, value := range values {
+						rw.Header().Add(key, value)
 					}
-					break
 				}
+				rw.WriteHeader(resp.StatusCode)
+				io.Copy(rw, resp.Body)
 			}
 			break
 		}

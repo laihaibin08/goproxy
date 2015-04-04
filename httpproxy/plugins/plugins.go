@@ -2,13 +2,13 @@ package plugins
 
 import (
 	"fmt"
-	"github.com/phuslu/goproxy/httpproxy"
+	"github.com/phuslu/goproxy/context"
 	"net/http"
 )
 
 type Plugin interface {
 	PluginName() string
-	Fetch(*httpproxy.Context, *http.Request) (*http.Response, error)
+	Fetch(*context.Context, *http.Request) (*http.Response, error)
 }
 
 type RegisteredPlugin struct {

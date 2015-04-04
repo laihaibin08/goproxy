@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"github.com/chai2010/webp"
 	"github.com/golang/glog"
-	"github.com/phuslu/goproxy/httpproxy"
+	"github.com/phuslu/goproxy/context"
 	"github.com/phuslu/goproxy/httpproxy/plugins"
 	"image"
 	_ "image/gif"
@@ -33,7 +33,7 @@ func (p *Plugin) PluginName() string {
 	return "imagez"
 }
 
-func (p *Plugin) Fetch(ctx *httpproxy.Context, req *http.Request) (*http.Response, error) {
+func (p *Plugin) Fetch(ctx *context.Context, req *http.Request) (*http.Response, error) {
 	underlay, err := plugins.NewPlugin(p.UnderlayPlugin)
 	if err != nil {
 		return nil, err

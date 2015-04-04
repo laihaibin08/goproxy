@@ -3,7 +3,7 @@ package mock
 import (
 	"bytes"
 	"github.com/golang/glog"
-	"github.com/phuslu/goproxy/httpproxy"
+	"github.com/phuslu/goproxy/context"
 	"github.com/phuslu/goproxy/httpproxy/plugins"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +26,7 @@ func (p *Plugin) PluginName() string {
 	return "mock"
 }
 
-func (p *Plugin) Fetch(ctx *httpproxy.Context, req *http.Request) (*http.Response, error) {
+func (p *Plugin) Fetch(ctx *context.Context, req *http.Request) (*http.Response, error) {
 	statusCode, err := ctx.GetInt("StatusCode")
 	if err != nil {
 		return nil, err
